@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Memotest Argentino 🇦🇷</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap');
+
+  :root{
+    --celeste:#6cb7e6;
+    --celeste-2:#8fd0f0;
+    --celeste-deep:#2f7fb8;
+    --sol:#f6b21b;
+    --sol-2:#ffcf4d;
+    --ink:#1f3550;
+    --paper:#f5fbff;
+    --card-back:linear-gradient(150deg,#7cc3ec,#4f9fd4);
+    --ok:#39b56a;
+    box-sizing:border-box;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Nunito',system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #eaf6ff 0%, transparent 60%),
+      linear-gradient(180deg,#f5fbff 0%,#eef6fb 100%);
+    min-height:100vh;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; align-items:center;
+  }
+  .wrap{width:100%; max-width:720px}
+
+  header{ text-align:center; margin-bottom:14px }
+  .flag{display:inline-flex; gap:5px; align-items:center; justify-content:center; margin-bottom:4px}
+  .flag i{width:26px;height:6px;border-radius:3px;display:block}
+  .flag .c{background:var(--celeste)} .flag .w{background:#fff;border:1px solid #dbe7ef}
+  h1{
+    font-family:'Baloo 2',sans-serif; font-weight:800;
+    font-size:clamp(28px,7vw,44px); margin:2px 0 2px; line-height:1;
+    color:var(--celeste-deep); letter-spacing:-.5px;
+  }
+  h1 .sun{color:var(--sol)}
+  .sub{color:#5f7891; font-weight:600; font-size:14px}
+
+  .hud{
+    display:flex; gap:10px; align-items:center; justify-content:center;
+    flex-wrap:wrap; margin:14px 0 18px;
+  }
+  .chip{
+    background:#fff; border:1px solid #e0ecf4; border-radius:14px;
+    padding:9px 14px; display:flex; align-items:center; gap:8px;
+    box-shadow:0 4px 14px rgba(47,127,184,.08); font-weight:700;
+  }
+  .chip .lbl{font-size:11px; color:#7a92a6; font-weight:700; text-transform:uppercase; letter-spacing:.06em}
+  .chip .val{font-family:'Baloo 2',sans-serif; font-size:20px; color:var(--ink); min-width:2ch; text-align:center}
+  .chip .ic{font-size:18px}
+  button.reset{
+    background:linear-gradient(180deg,var(--sol-2),var(--sol));
+    color:#5a3d00; border:none; border-radius:14px; padding:11px 18px;
+    font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; cursor:pointer;
+    box-shadow:0 6px 16px rgba(246,178,27,.35); transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button.reset:hover{transform:translateY(-2px); box-shadow:0 9px 20px rgba(246,178,27,.42)}
+  button.reset:active{transform:translateY(0)}
+
+  .board{
+    display:grid; grid-template-columns:repeat(6,1fr); gap:10px;
+  }
+  @media (max-width:560px){ .board{ grid-template-columns:repeat(4,1fr); gap:8px } }
+
+  .card{ position:relative; aspect-ratio:1/1; cursor:pointer; perspective:800px }
+  .card-inner{
+    position:absolute; inset:0; transform-style:preserve-3d;
+    transition:transform .45s cubic-bezier(.2,.8,.25,1);
+  }
+  .card.flipped .card-inner, .card.matched .card-inner{ transform:rotateY(180deg) }
+  .face{
+    position:absolute; inset:0; border-radius:16px; backface-visibility:hidden;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .face-down{
+    background:var(--card-back);
+    box-shadow:inset 0 0 0 3px rgba(255,255,255,.35), 0 6px 14px rgba(47,127,184,.22);
+  }
+  .face-down::before{ /* solecito */
+    content:"☀️"; font-size:clamp(22px,6vw,34px); color:rgba(255,255,255,.9);
+    text-shadow:0 2px 6px rgba(0,0,0,.12);
+  }
+  .face-up{
+    background:#fff; transform:rotateY(180deg);
+    border:2px solid #e6f1f8; box-shadow:0 6px 16px rgba(47,127,184,.14);
+    flex-direction:column; gap:2px; padding:6px;
+  }
+  .face-up .emoji{ font-size:clamp(30px,9vw,46px); line-height:1 }
+  .face-up .name{ font-size:clamp(9px,2.4vw,12px); font-weight:700; color:#587089; text-align:center }
+  .card.matched .face-up{ border-color:#bdead0; box-shadow:0 0 0 3px rgba(57,181,106,.25), 0 6px 16px rgba(57,181,106,.18) }
+  .card.matched{ animation:pop .5s ease }
+  @keyframes pop{ 0%{transform:scale(1)} 40%{transform:scale(1.08)} 100%{transform:scale(1)} }
+  .card:not(.flipped):not(.matched):hover .card-inner{ transform:translateY(-3px) }
+
+  /* toast al encontrar par */
+  .toast{
+    position:fixed; left:50%; top:22%; transform:translate(-50%,-10px) scale(.9);
+    background:#fff; border:2px solid var(--sol-2); border-radius:18px;
+    padding:16px 22px; text-align:center; z-index:50; pointer-events:none;
+    box-shadow:0 16px 40px rgba(31,53,80,.22); opacity:0; transition:opacity .18s ease, transform .18s ease;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%,0) scale(1) }
+  .toast .big{ font-size:52px; line-height:1 }
+  .toast .ph{ font-family:'Baloo 2',sans-serif; font-weight:700; color:var(--celeste-deep); margin-top:6px; font-size:17px }
+
+  /* overlay victoria */
+  .overlay{
+    position:fixed; inset:0; background:rgba(31,53,80,.5); backdrop-filter:blur(4px);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .overlay.show{ display:flex; animation:fade .25s ease }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:#fff; border-radius:24px; padding:30px 26px; text-align:center; max-width:340px; width:100%;
+    box-shadow:0 24px 60px rgba(31,53,80,.3); border-top:6px solid var(--sol);
+  }
+  .modal h2{ font-family:'Baloo 2',sans-serif; font-size:30px; margin:6px 0 6px; color:var(--celeste-deep) }
+  .modal p{ color:#5f7891; font-weight:600; margin:0 0 6px }
+  .modal .score{ display:flex; gap:12px; justify-content:center; margin:16px 0 20px }
+  .modal .score div{ background:#f2f9fd; border-radius:14px; padding:10px 16px }
+  .modal .score .n{ font-family:'Baloo 2',sans-serif; font-size:24px; color:var(--ink) }
+  .modal .score .l{ font-size:11px; color:#7a92a6; text-transform:uppercase; letter-spacing:.06em; font-weight:700 }
+  .confetti{ font-size:44px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="flag"><i class="c"></i><i class="w"></i><i class="c"></i></div>
+    <h1>Memotest <span class="sun">Argentino</span> 🧉</h1>
+    <div class="sub">Encontrá los pares de comidas y bebidas bien nuestras</div>
+  </header>
+
+  <div class="hud">
+    <div class="chip"><span class="ic">🔄</span><div><div class="lbl">Movimientos</div><div class="val" id="moves">0</div></div></div>
+    <div class="chip"><span class="ic">⏱️</span><div><div class="lbl">Tiempo</div><div class="val" id="time">00:00</div></div></div>
+    <button class="reset" id="reset">Reiniciar partida</button>
+  </div>
+
+  <div class="board" id="board"></div>
+</div>
+
+<div class="toast" id="toast"><div class="big" id="toastEmoji">🥟</div><div class="ph" id="toastPhrase"></div></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="confetti">🎉🇦🇷🎉</div>
+    <h2>¡Bien ahí!</h2>
+    <p>Encontraste todos los pares.</p>
+    <div class="score">
+      <div><div class="n" id="finalMoves">0</div><div class="l">Movimientos</div></div>
+      <div><div class="n" id="finalTime">00:00</div><div class="l">Tiempo</div></div>
+    </div>
+    <button class="reset" id="playAgain">Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+  const ITEMS = [
+    { name:"Choripán",        emoji:"🌭", phrase:"¡Con chimichurri es otra cosa!" },
+    { name:"Empanadas",       emoji:"🥟", phrase:"¿Carne o pollo? ¡Las dos!" },
+    { name:"Alfajor",         emoji:"🍪", phrase:"Triple, obvio." },
+    { name:"Mate",            emoji:"🧉", phrase:"¿Unos mates y charlamos?" },
+    { name:"Fernet con coca", emoji:"🥤", phrase:"70 y 30, como corresponde." },
+    { name:"Medialunas",      emoji:"🥐", phrase:"De grasa y calentitas." },
+    { name:"Locro",           emoji:"🍲", phrase:"Feriado patrio asegurado." },
+    { name:"Milanesa",        emoji:"🍗", phrase:"A caballo, dale." },
+    { name:"Asado",           emoji:"🥩", phrase:"El domingo no se negocia." },
+    { name:"Dulce de leche",  emoji:"🍯", phrase:"A cucharadas del pote." },
+    { name:"Facturas",        emoji:"🥧", phrase:"Media docena y surtidas." },
+    { name:"Pizza argentina", emoji:"🍕", phrase:"De muzza, bien alta." },
+  ];
+
+  const boardEl   = document.getElementById('board');
+  const movesEl   = document.getElementById('moves');
+  const timeEl    = document.getElementById('time');
+  const toastEl   = document.getElementById('toast');
+  const toastEmoji= document.getElementById('toastEmoji');
+  const toastPh   = document.getElementById('toastPhrase');
+  const overlay   = document.getElementById('overlay');
+
+  let deck=[], first=null, second=null, lock=false;
+  let moves=0, matched=0, timer=null, seconds=0, started=false;
+
+  function shuffle(a){
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+  function fmt(s){ const m=String(Math.floor(s/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0'); return m+":"+ss; }
+
+  function startTimer(){
+    if(started) return; started=true;
+    timer=setInterval(()=>{ seconds++; timeEl.textContent=fmt(seconds); },1000);
+  }
+  function stopTimer(){ clearInterval(timer); timer=null; }
+
+  function build(){
+    // reset state
+    stopTimer(); started=false; seconds=0; moves=0; matched=0; first=second=null; lock=false;
+    movesEl.textContent="0"; timeEl.textContent="00:00"; overlay.classList.remove('show');
+
+    deck = shuffle(ITEMS.flatMap((it,idx)=>([{...it,pid:idx},{...it,pid:idx}])));
+    boardEl.innerHTML="";
+    deck.forEach((card,i)=>{
+      const el=document.createElement('div');
+      el.className='card'; el.dataset.pid=card.pid; el.dataset.i=i;
+      el.innerHTML=`
+        <div class="card-inner">
+          <div class="face face-down"></div>
+          <div class="face face-up"><div class="emoji">${card.emoji}</div><div class="name">${card.name}</div></div>
+        </div>`;
+      el.addEventListener('click',()=>onFlip(el,card));
+      boardEl.appendChild(el);
+    });
+  }
+
+  function onFlip(el,card){
+    if(lock) return;
+    if(el.classList.contains('flipped')||el.classList.contains('matched')) return;
+    startTimer();
+    el.classList.add('flipped');
+
+    if(!first){ first={el,card}; return; }
+    second={el,card};
+    moves++; movesEl.textContent=moves;
+
+    if(first.card.pid===second.card.pid){
+      // match!
+      lock=true;
+      setTimeout(()=>{
+        first.el.classList.add('matched'); second.el.classList.add('matched');
+        showToast(card);
+        matched++;
+        first=second=null; lock=false;
+        if(matched===ITEMS.length) win();
+      },320);
+    } else {
+      lock=true;
+      setTimeout(()=>{
+        first.el.classList.remove('flipped'); second.el.classList.remove('flipped');
+        first=second=null; lock=false;
+      },850);
+    }
+  }
+
+  let toastTimer=null;
+  function showToast(card){
+    toastEmoji.textContent=card.emoji;
+    toastPh.textContent=card.phrase;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1000);
+  }
+
+  function win(){
+    stopTimer();
+    document.getElementById('finalMoves').textContent=moves;
+    document.getElementById('finalTime').textContent=fmt(seconds);
+    setTimeout(()=>overlay.classList.add('show'),700);
+  }
+
+  document.getElementById('reset').addEventListener('click',build);
+  document.getElementById('playAgain').addEventListener('click',build);
+
+  build();
+</script>
+</body>
+</html>
